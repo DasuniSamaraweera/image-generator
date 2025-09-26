@@ -1,0 +1,14 @@
+# Ignore Python virtual environments
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+output/
+.DS_Store
+.ipynb_checkpoints/
+*.sqlite3
+*.db
+*.lfs
