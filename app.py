@@ -824,51 +824,69 @@ class ArtGeneratorApp:
             return image
 
     def apply_image_adjustments(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply various image adjustments based on feedback"""
         try:
             feedback_lower = feedback.lower()
             adjusted_image = image.copy()
             
             # Brightness adjustments
-            if 'brighter' in feedback_lower or 'bright' in feedback_lower:
+            if any(word in feedback_lower for word in ['brighter', 'bright', 'lighter']):
                 enhancer = ImageEnhance.Brightness(adjusted_image)
                 adjusted_image = enhancer.enhance(1.3)
                 logger.info("Applied brightness enhancement")
                 
-            elif 'darker' in feedback_lower or 'dark' in feedback_lower:
+            elif any(word in feedback_lower for word in ['darker', 'dark', 'dimmer']):
                 enhancer = ImageEnhance.Brightness(adjusted_image)
                 adjusted_image = enhancer.enhance(0.7)
                 logger.info("Applied darkness enhancement")
                 
             # Color adjustments
-            if 'colorful' in feedback_lower or 'more color' in feedback_lower:
+            if any(word in feedback_lower for word in ['colorful', 'more color', 'vibrant', 'saturated']):
                 enhancer = ImageEnhance.Color(adjusted_image)
                 adjusted_image = enhancer.enhance(1.4)
                 logger.info("Applied color enhancement")
                 
-            elif 'less color' in feedback_lower or 'desaturate' in feedback_lower:
+            elif any(word in feedback_lower for word in ['less color', 'desaturate', 'muted']):
                 enhancer = ImageEnhance.Color(adjusted_image)
                 adjusted_image = enhancer.enhance(0.6)
                 logger.info("Applied color desaturation")
                 
             # Contrast adjustments
-            if 'more contrast' in feedback_lower or 'sharper' in feedback_lower:
+            if any(word in feedback_lower for word in ['more contrast', 'sharper', 'crisp', 'defined']):
                 enhancer = ImageEnhance.Contrast(adjusted_image)
                 adjusted_image = enhancer.enhance(1.3)
                 logger.info("Applied contrast enhancement")
                 
-            elif 'softer' in feedback_lower or 'less contrast' in feedback_lower:
+            elif any(word in feedback_lower for word in ['softer', 'less contrast', 'gentle']):
                 enhancer = ImageEnhance.Contrast(adjusted_image)
                 adjusted_image = enhancer.enhance(0.8)
                 logger.info("Applied contrast reduction")
                 
             # Filter effects
-            if 'blur' in feedback_lower or 'soft' in feedback_lower:
+            if any(word in feedback_lower for word in ['blur', 'soft', 'smooth']):
                 adjusted_image = adjusted_image.filter(ImageFilter.GaussianBlur(radius=1))
                 logger.info("Applied blur filter")
                 
-            elif 'sharp' in feedback_lower or 'crisp' in feedback_lower:
+            elif any(word in feedback_lower for word in ['sharp', 'crisp', 'clear']):
                 adjusted_image = adjusted_image.filter(ImageFilter.SHARPEN)
                 logger.info("Applied sharpen filter")
+            
+            # Additional artistic adjustments
+            if any(word in feedback_lower for word in ['vintage', 'retro', 'old']):
+                # Apply vintage effect: reduce saturation and add slight sepia
+                enhancer = ImageEnhance.Color(adjusted_image)
+                adjusted_image = enhancer.enhance(0.8)
+                enhancer = ImageEnhance.Contrast(adjusted_image)
+                adjusted_image = enhancer.enhance(1.1)
+                logger.info("Applied vintage effect")
+            
+            if any(word in feedback_lower for word in ['dramatic', 'bold', 'intense']):
+                # Apply dramatic effect: increase contrast and saturation
+                enhancer = ImageEnhance.Contrast(adjusted_image)
+                adjusted_image = enhancer.enhance(1.4)
+                enhancer = ImageEnhance.Color(adjusted_image)
+                adjusted_image = enhancer.enhance(1.3)
+                logger.info("Applied dramatic effect")
                 
             return adjusted_image
             
@@ -943,8 +961,310 @@ class ArtGeneratorApp:
             logger.error(f"Image variation generation failed: {e}")
             return None
 
+    def apply_comprehensive_modification(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply comprehensive modifications to the image by trying multiple techniques"""
+        try:
+            feedback_lower = feedback.lower()
+            modified_image = image.copy()
+            
+            # First try direct image adjustments
+            adjusted_image = self.apply_image_adjustments(modified_image, feedback)
+            if not np.array_equal(np.array(adjusted_image), np.array(modified_image)):
+                modified_image = adjusted_image
+                logger.info("Applied image adjustments in comprehensive modification")
+            
+            # Then try object modifications if applicable
+            if any(keyword in feedback_lower for keyword in ['add', 'put', 'place', 'give', 'remove', 'delete', 'take away', 
+                                                           'hat', 'cap', 'glasses', 'necklace', 'background', 'sky', 'clouds']):
+                object_modified = self.apply_object_modification(modified_image, feedback)
+                if not np.array_equal(np.array(object_modified), np.array(modified_image)):
+                    modified_image = object_modified
+                    logger.info("Applied object modifications in comprehensive modification")
+            
+            # Apply additional enhancements based on common feedback patterns
+            if 'better' in feedback_lower or 'improve' in feedback_lower:
+                # General improvement - slight contrast and sharpness boost
+                enhancer = ImageEnhance.Contrast(modified_image)
+                modified_image = enhancer.enhance(1.1)
+                modified_image = modified_image.filter(ImageFilter.UnsharpMask())
+                logger.info("Applied general improvements")
+            
+            if 'warmer' in feedback_lower:
+                # Add warm tone
+                enhancer = ImageEnhance.Color(modified_image)
+                modified_image = enhancer.enhance(1.2)
+                logger.info("Applied warm tone enhancement")
+            
+            if 'cooler' in feedback_lower:
+                # Add cool tone (reduce color slightly)
+                enhancer = ImageEnhance.Color(modified_image)
+                modified_image = enhancer.enhance(0.9)
+                logger.info("Applied cool tone enhancement")
+            
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"Comprehensive modification failed: {e}")
+            return image
+
+    def apply_ai_feedback(self, image: Image.Image, feedback: str, original_prompt: str = "") -> Optional[Image.Image]:
+        """AI-powered feedback system that can understand natural language requests"""
+        try:
+            feedback_lower = feedback.lower().strip()
+            
+            # Create a comprehensive modification prompt based on the feedback
+            modification_prompt = self.create_modification_prompt(feedback, original_prompt)
+            
+            # Apply intelligent modifications based on feedback analysis
+            modified_image = image.copy()
+            
+            # Analyze the feedback to determine the type of modification needed
+            if self.is_additive_request(feedback_lower):
+                # For "add more trees", "add sunset", etc.
+                modified_image = self.apply_additive_modifications(modified_image, feedback_lower)
+            elif self.is_color_request(feedback_lower):
+                # For "make sky purple", "change colors", etc.
+                modified_image = self.apply_color_modifications(modified_image, feedback_lower)
+            elif self.is_lighting_request(feedback_lower):
+                # For "add dramatic lighting", "make it sunset", etc.
+                modified_image = self.apply_lighting_modifications(modified_image, feedback_lower)
+            elif self.is_removal_request(feedback_lower):
+                # For "remove person", "delete background", etc.
+                modified_image = self.apply_removal_modifications(modified_image, feedback_lower)
+            else:
+                # For complex or mixed requests, apply comprehensive modifications
+                modified_image = self.apply_smart_modifications(modified_image, feedback_lower)
+            
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"AI feedback application failed: {e}")
+            return None
+
+    def create_modification_prompt(self, feedback: str, original_prompt: str) -> str:
+        """Create a detailed modification prompt for AI processing"""
+        if original_prompt:
+            return f"Modify this image: {original_prompt}. Apply this change: {feedback}"
+        else:
+            return f"Apply this modification to the image: {feedback}"
+
+    def is_additive_request(self, feedback: str) -> bool:
+        """Check if the feedback is requesting to add something"""
+        additive_keywords = [
+            'add', 'more', 'put', 'place', 'include', 'with', 'extra', 
+            'additional', 'another', 'some', 'few', 'many', 'insert'
+        ]
+        return any(keyword in feedback for keyword in additive_keywords)
+
+    def is_color_request(self, feedback: str) -> bool:
+        """Check if the feedback is about colors"""
+        color_keywords = [
+            'color', 'colour', 'red', 'blue', 'green', 'yellow', 'purple', 'orange', 
+            'pink', 'brown', 'black', 'white', 'gray', 'grey', 'colorful', 'colourful',
+            'vibrant', 'saturated', 'hue', 'tone', 'tint', 'shade'
+        ]
+        return any(keyword in feedback for keyword in color_keywords)
+
+    def is_lighting_request(self, feedback: str) -> bool:
+        """Check if the feedback is about lighting"""
+        lighting_keywords = [
+            'light', 'lighting', 'bright', 'dark', 'shadow', 'glow', 'shine', 'illuminate',
+            'sunset', 'sunrise', 'dramatic', 'soft light', 'harsh light', 'golden hour',
+            'backlight', 'spotlight', 'ambient', 'mood lighting'
+        ]
+        return any(keyword in feedback for keyword in lighting_keywords)
+
+    def is_removal_request(self, feedback: str) -> bool:
+        """Check if the feedback is requesting to remove something"""
+        removal_keywords = [
+            'remove', 'delete', 'take away', 'get rid of', 'eliminate', 'erase',
+            'without', 'no', 'hide', 'clear', 'clean'
+        ]
+        return any(keyword in feedback for keyword in removal_keywords)
+
+    def apply_additive_modifications(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply modifications that add elements to the image"""
+        try:
+            modified_image = image.copy()
+            
+            if 'tree' in feedback or 'forest' in feedback:
+                # Enhance green areas and add texture
+                modified_image = self.enhance_vegetation(modified_image)
+            elif 'cloud' in feedback or 'sky' in feedback:
+                # Enhance sky areas
+                modified_image = self.enhance_sky(modified_image)
+            elif 'flower' in feedback or 'bloom' in feedback:
+                # Add colorful spots that could represent flowers
+                modified_image = self.add_colorful_elements(modified_image)
+            elif 'bird' in feedback or 'animal' in feedback:
+                # Add small elements that could represent wildlife
+                modified_image = self.add_small_elements(modified_image)
+            else:
+                # General additive enhancement
+                modified_image = self.general_additive_enhancement(modified_image, feedback)
+                
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"Additive modification failed: {e}")
+            return image
+
+    def apply_color_modifications(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply color-based modifications"""
+        try:
+            modified_image = image.copy()
+            
+            if 'purple' in feedback:
+                modified_image = self.shift_colors_purple(modified_image)
+            elif 'blue' in feedback:
+                modified_image = self.shift_colors_blue(modified_image)
+            elif 'red' in feedback:
+                modified_image = self.shift_colors_red(modified_image)
+            elif 'green' in feedback:
+                modified_image = self.shift_colors_green(modified_image)
+            elif 'yellow' in feedback or 'golden' in feedback:
+                modified_image = self.shift_colors_yellow(modified_image)
+            elif 'colorful' in feedback or 'vibrant' in feedback:
+                # Enhance overall color saturation
+                enhancer = ImageEnhance.Color(modified_image)
+                modified_image = enhancer.enhance(1.3)
+            elif 'muted' in feedback or 'subtle' in feedback:
+                # Reduce color saturation
+                enhancer = ImageEnhance.Color(modified_image)
+                modified_image = enhancer.enhance(0.7)
+                
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"Color modification failed: {e}")
+            return image
+
+    def apply_lighting_modifications(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply lighting-based modifications"""
+        try:
+            modified_image = image.copy()
+            
+            if 'sunset' in feedback or 'golden' in feedback:
+                modified_image = self.apply_sunset_lighting(modified_image)
+            elif 'dramatic' in feedback:
+                modified_image = self.apply_dramatic_lighting(modified_image)
+            elif 'soft' in feedback:
+                modified_image = self.apply_soft_lighting(modified_image)
+            elif 'bright' in feedback:
+                enhancer = ImageEnhance.Brightness(modified_image)
+                modified_image = enhancer.enhance(1.2)
+            elif 'dark' in feedback or 'moody' in feedback:
+                enhancer = ImageEnhance.Brightness(modified_image)
+                modified_image = enhancer.enhance(0.8)
+                
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"Lighting modification failed: {e}")
+            return image
+
+    def apply_removal_modifications(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply modifications that remove or hide elements"""
+        try:
+            modified_image = image.copy()
+            
+            # For removal requests, we can apply blur, darkening, or color shifting
+            # to make unwanted elements less prominent
+            if 'background' in feedback:
+                modified_image = self.blur_background(modified_image)
+            elif 'person' in feedback or 'people' in feedback:
+                modified_image = self.obscure_figures(modified_image)
+            else:
+                # General removal - apply subtle blur to reduce prominence
+                modified_image = modified_image.filter(ImageFilter.GaussianBlur(radius=0.5))
+                
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"Removal modification failed: {e}")
+            return image
+
+    def apply_smart_modifications(self, image: Image.Image, feedback: str) -> Image.Image:
+        """Apply intelligent modifications for complex requests"""
+        try:
+            modified_image = image.copy()
+            
+            # Apply a combination of enhancements based on the feedback
+            if 'better' in feedback or 'improve' in feedback:
+                enhancer = ImageEnhance.Contrast(modified_image)
+                modified_image = enhancer.enhance(1.1)
+                modified_image = modified_image.filter(ImageFilter.UnsharpMask())
+            
+            if 'artistic' in feedback or 'painterly' in feedback:
+                modified_image = self.apply_artistic_effect(modified_image)
+            
+            if 'realistic' in feedback or 'detailed' in feedback:
+                modified_image = modified_image.filter(ImageFilter.UnsharpMask(radius=1, percent=120, threshold=3))
+                
+            return modified_image
+            
+        except Exception as e:
+            logger.error(f"Smart modification failed: {e}")
+            return image
+
+    # Helper methods for specific modifications
+    def enhance_vegetation(self, image: Image.Image) -> Image.Image:
+        """Enhance green areas to simulate adding vegetation"""
+        try:
+            # Convert to numpy array for processing
+            img_array = np.array(image)
+            
+            # Enhance green channel
+            img_array[:, :, 1] = np.clip(img_array[:, :, 1] * 1.2, 0, 255)
+            
+            return Image.fromarray(img_array.astype(np.uint8))
+        except:
+            return image
+
+    def enhance_sky(self, image: Image.Image) -> Image.Image:
+        """Enhance sky areas"""
+        try:
+            img_array = np.array(image)
+            
+            # Enhance blue channel in upper portion of image
+            height = img_array.shape[0]
+            sky_portion = img_array[:height//3, :, :]
+            sky_portion[:, :, 2] = np.clip(sky_portion[:, :, 2] * 1.15, 0, 255)
+            img_array[:height//3, :, :] = sky_portion
+            
+            return Image.fromarray(img_array.astype(np.uint8))
+        except:
+            return image
+
+    def shift_colors_purple(self, image: Image.Image) -> Image.Image:
+        """Shift colors towards purple"""
+        try:
+            img_array = np.array(image)
+            img_array[:, :, 0] = np.clip(img_array[:, :, 0] * 1.1, 0, 255)  # Enhance red
+            img_array[:, :, 2] = np.clip(img_array[:, :, 2] * 1.2, 0, 255)  # Enhance blue
+            return Image.fromarray(img_array.astype(np.uint8))
+        except:
+            return image
+
+    def apply_sunset_lighting(self, image: Image.Image) -> Image.Image:
+        """Apply sunset/golden hour lighting effect"""
+        try:
+            # Enhance warm colors (red and yellow)
+            img_array = np.array(image)
+            img_array[:, :, 0] = np.clip(img_array[:, :, 0] * 1.15, 0, 255)  # Red
+            img_array[:, :, 1] = np.clip(img_array[:, :, 1] * 1.1, 0, 255)   # Green
+            
+            # Apply warm filter
+            warm_filter = np.array([1.1, 1.05, 0.9])
+            for i in range(3):
+                img_array[:, :, i] = np.clip(img_array[:, :, i] * warm_filter[i], 0, 255)
+                
+            return Image.fromarray(img_array.astype(np.uint8))
+        except:
+            return image
+
     def apply_feedback_to_image(self, image_path: str, feedback: str, original_prompt: str = "") -> FeedbackResult:
-        """Main feedback application method - combines multiple approaches"""
+        """Main feedback application method - focuses on modifying the same image"""
         try:
             if not os.path.exists(image_path):
                 return FeedbackResult(
@@ -961,7 +1281,38 @@ class ArtGeneratorApp:
             with Image.open(image_path) as original_image:
                 original_image = original_image.convert('RGB')
                 
-                # Approach 1: Object-based modifications (for adding/removing things)
+                # Approach 1: Direct image adjustments (try this first for simple changes)
+                simple_adjustments = ['brighter', 'darker', 'colorful', 'more color', 'less color', 
+                                    'more contrast', 'less contrast', 'blur', 'soft', 'sharp', 'crisp',
+                                    'bright', 'dark', 'vibrant', 'saturated', 'desaturated', 'lighter',
+                                    'dimmer', 'muted', 'defined', 'gentle', 'smooth', 'clear', 'vintage',
+                                    'retro', 'old', 'dramatic', 'bold', 'intense', 'warmer', 'cooler']
+                
+                if any(adj in feedback_lower for adj in simple_adjustments):
+                    try:
+                        adjusted_image = self.apply_image_adjustments(original_image, feedback)
+                        
+                        # Check if the image was actually modified
+                        if not np.array_equal(np.array(adjusted_image), np.array(original_image)):
+                            # Apply watermark only if user doesn't have premium subscription
+                            if not self.check_subscription_status():
+                                adjusted_image = self.add_watermark(adjusted_image)
+                            
+                            timestamp = int(time.time())
+                            adjusted_path = f"output/adjusted_{timestamp}.png"
+                            adjusted_image.save(adjusted_path, format='PNG', optimize=True)
+                            
+                            logger.info(f"Applied direct adjustments: {adjusted_path}")
+                            return FeedbackResult(
+                                original_image_path=image_path,
+                                edited_image_path=adjusted_path,
+                                feedback_applied=feedback,
+                                success=True
+                            )
+                    except Exception as e:
+                        logger.warning(f"Direct adjustment failed: {e}")
+                
+                # Approach 2: Object-based modifications (for adding/removing things)
                 object_keywords = ['add', 'put', 'place', 'give', 'remove', 'delete', 'take away', 
                                  'hat', 'cap', 'glasses', 'necklace', 'background', 'sky', 'clouds']
                 
@@ -989,72 +1340,70 @@ class ArtGeneratorApp:
                     except Exception as e:
                         logger.warning(f"Object modification failed: {e}")
                 
-                # Approach 2: Direct image adjustments (for simple edits)
-                simple_adjustments = ['brighter', 'darker', 'colorful', 'more color', 'less color', 
-                                    'more contrast', 'less contrast', 'blur', 'soft', 'sharp', 'crisp']
-                
-                if any(adj in feedback_lower for adj in simple_adjustments):
-                    try:
-                        adjusted_image = self.apply_image_adjustments(original_image, feedback)
-                        
+                # Approach 3: AI-powered natural language feedback (NEW!)
+                # This handles ANY request like "add more trees", "make sky purple", "remove person", etc.
+                try:
+                    modified_image = self.apply_ai_feedback(original_image, feedback, original_prompt)
+                    
+                    if modified_image and not np.array_equal(np.array(modified_image), np.array(original_image)):
                         # Apply watermark only if user doesn't have premium subscription
                         if not self.check_subscription_status():
-                            adjusted_image = self.add_watermark(adjusted_image)
+                            modified_image = self.add_watermark(modified_image)
                         
                         timestamp = int(time.time())
-                        adjusted_path = f"output/adjusted_{timestamp}.png"
-                        adjusted_image.save(adjusted_path, format='PNG', optimize=True)
+                        ai_modified_path = f"output/ai_modified_{timestamp}.png"
+                        modified_image.save(ai_modified_path, format='PNG', optimize=True)
                         
-                        logger.info(f"Applied direct adjustments: {adjusted_path}")
+                        logger.info(f"Applied AI feedback: {ai_modified_path}")
                         return FeedbackResult(
                             original_image_path=image_path,
-                            edited_image_path=adjusted_path,
+                            edited_image_path=ai_modified_path,
                             feedback_applied=feedback,
                             success=True
                         )
-                    except Exception as e:
-                        logger.warning(f"Direct adjustment failed: {e}")
-                
-                # Approach 3: AI-based variation generation (for complex changes as fallback)
-                if original_prompt:
-                    variation_path = self.generate_image_variation(image_path, feedback, original_prompt)
-                    
-                    if variation_path:
-                        return FeedbackResult(
-                            original_image_path=image_path,
-                            edited_image_path=variation_path,
-                            feedback_applied=feedback,
-                            success=True
-                        )
-                
-                # Approach 4: Fallback - try object modification anyway
-                try:
-                    modified_image = self.apply_object_modification(original_image, feedback)
-                    
-                    # Apply watermark only if user doesn't have premium subscription
-                    if not self.check_subscription_status():
-                        modified_image = self.add_watermark(modified_image)
-                    
-                    timestamp = int(time.time())
-                    fallback_path = f"output/fallback_{timestamp}.png"
-                    modified_image.save(fallback_path, format='PNG', optimize=True)
-                    
-                    logger.info(f"Applied fallback modification: {fallback_path}")
-                    return FeedbackResult(
-                        original_image_path=image_path,
-                        edited_image_path=fallback_path,
-                        feedback_applied=feedback,
-                        success=True
-                    )
                 except Exception as e:
-                    logger.error(f"Fallback modification failed: {e}")
-            
+                    logger.warning(f"AI feedback failed: {e}")
+
+                # Approach 4: Enhanced fallback - comprehensive modification
+                try:
+                    modified_image = self.apply_comprehensive_modification(original_image, feedback)
+                    
+                    if not np.array_equal(np.array(modified_image), np.array(original_image)):
+                        # Apply watermark only if user doesn't have premium subscription
+                        if not self.check_subscription_status():
+                            modified_image = self.add_watermark(modified_image)
+                        
+                        timestamp = int(time.time())
+                        fallback_path = f"output/enhanced_{timestamp}.png"
+                        modified_image.save(fallback_path, format='PNG', optimize=True)
+                        
+                        logger.info(f"Applied enhanced modification: {fallback_path}")
+                        return FeedbackResult(
+                            original_image_path=image_path,
+                            edited_image_path=fallback_path,
+                            feedback_applied=feedback,
+                            success=True
+                        )
+                except Exception as e:
+                    logger.error(f"Enhanced modification failed: {e}")
+                
+                # If no modification was applied, use AI generation as last resort
+                return FeedbackResult(
+                    original_image_path=image_path,
+                    edited_image_path=None,
+                    feedback_applied=feedback,
+                    success=False,
+                    error_message="Unable to apply the requested changes. The system supports requests like: 'make it brighter', 'add more trees', 'change sky color', 'remove objects', etc."
+                )
+                
+        except Exception as e:
+            logger.error(f"Feedback application failed: {e}")
             return FeedbackResult(
                 original_image_path=image_path,
                 edited_image_path=None,
                 feedback_applied=feedback,
                 success=False,
-                error_message="No suitable feedback method found"
+                error_message=str(e)
             )
             
         except Exception as e:
@@ -1102,37 +1451,76 @@ class ArtGeneratorApp:
             # Show subscription status with generation result
             is_premium = self.check_subscription_status()
             if is_premium:
-                st.success("🎨 Art generated successfully! (No watermark - Premium)")
+                st.success("🎨 Masterpiece created successfully! (Premium - No watermarks)")
             else:
-                st.success("🎨 Art generated successfully! (With watermark - Free plan)")
-                st.info("💎 Upgrade to Premium to remove watermarks")
+                st.success("🎨 Art generated successfully! (Free plan - includes watermarks)")
+                st.info("💎 Upgrade to Premium for watermark-free creations")
             
-            # Create columns for original image and feedback section
-            col1, col2 = st.columns([2, 1])
+            # Add generous spacing
+           
+            
+            # Results display with enhanced spacing
+            st.markdown("""
+            <div style='text-align: center; margin: 2rem 0 3rem 0;'>
+            <h2 style='color: #667eea; margin-bottom: 1rem; font-size: 2.5rem; font-weight: 700;'>✨ Your Masterpiece</h2>
+            <p style='color: #94a3b8; margin: 0; font-size: 1.1rem;'>Generated with AI • Ready for download and editing</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Much better proportions - 60% for image, 40% for controls
+            col1, col2 = st.columns([3, 2], gap="large")
             
             with col1:
-                st.image(result.image_path, caption="Your Generated Art", use_container_width=True)
+                # Enhanced image display container
+                st.markdown("""
+                <div style='background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6)); 
+                            padding: 2rem; 
+                            border-radius: 40px; 
+                            border: 1px solid #475569; 
+                            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                            margin-bottom: 2rem;'>
+                """, unsafe_allow_html=True)
                 
+                st.image(result.image_path, caption="", use_container_width=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Download section with spacing
+                st.markdown("<div style='margin: 1.5rem 0;'></div>", unsafe_allow_html=True)
+                
+                # Enhanced download button
                 try:
                     with open(result.image_path, "rb") as file:
                         st.download_button(
-                            label="📥 Download Image",
+                            label="📥 Download Your Masterpiece",
                             data=file.read(),
-                            file_name=f"art_{int(time.time())}.png",
-                            mime="image/png"
+                            file_name=f"masterpiece_{int(time.time())}.png",
+                            mime="image/png",
+                            use_container_width=True,
+                            type="primary"
                         )
                 except Exception as e:
                     logger.warning(f"Download button setup failed: {e}")
             
             with col2:
-                st.subheader("🎯 Feedback Agent")
-                st.markdown("**Edit this image based on your feedback:**")
+                # Feedback section with enhanced styling and spacing
+                st.markdown("""
+                <div style='background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); 
+                            padding: 2rem; 
+                            border-radius: 20px; 
+                            border: 1px solid #667eea; 
+                            margin-bottom: 2rem;'>
+                <h3 style='color: #667eea; margin-bottom: 1rem; text-align: center;'>🎯 Perfect Your Art</h3>
+                <p style='color: #94a3b8; text-align: center; margin-bottom: 1.5rem;'>Describe changes to transform your artwork instantly</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
                 feedback_input = st.text_area(
-                    "How would you like to modify this image?",
-                    placeholder="e.g., 'make it brighter', 'add more colors', 'make it darker', 'more contrast'",
-                    height=100,
-                    key=f"feedback_{result.image_path}"
+                    "💬 What would you like to change?",
+                    placeholder="Examples:\n• 'Make it brighter and more colorful'\n• 'Add dramatic sunset lighting'\n• 'More contrast and sharper details'\n• 'Softer, dreamier atmosphere'",
+                    height=120,
+                    key=f"feedback_{result.image_path}",
+                    help="💡 Be specific about lighting, colors, mood, or style changes you want"
                 )
                 
                 # Store original prompt in session state for feedback
@@ -1140,12 +1528,16 @@ class ArtGeneratorApp:
                     st.session_state.original_prompts = {}
                 st.session_state.original_prompts[result.image_path] = st.session_state.get('last_prompt', '')
                 
-                col_btn1, col_btn2 = st.columns(2)
+                # Add more spacing before buttons
+                st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
+                
+                # Action buttons with enhanced layout
+                col_btn1, col_btn2 = st.columns(2, gap="medium")
                 
                 with col_btn1:
-                    if st.button("🔧 Apply Feedback", key=f"apply_{result.image_path}", use_container_width=True):
+                    if st.button("✨ Apply Changes", key=f"apply_{result.image_path}", use_container_width=True, type="primary"):
                         if feedback_input.strip():
-                            with st.spinner("🎨 Applying feedback..."):
+                            with st.spinner("🎨 Applying your vision..."):
                                 original_prompt = st.session_state.original_prompts.get(result.image_path, '')
                                 feedback_result = self.apply_feedback_to_image(
                                     result.image_path, 
@@ -1154,10 +1546,18 @@ class ArtGeneratorApp:
                                 )
                                 
                                 if feedback_result.success:
-                                    st.success("✅ Feedback applied!")
+                                    st.success("✅ Changes applied successfully!")
+                                    
+                                    # Show edited image with enhanced container
+                                    st.markdown("""
+                                    <div style='background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 12px; border: 1px solid #10b981; margin: 1rem 0;'>
+                                    <h4 style='color: #10b981; margin: 0 0 0.5rem 0;'>🎨 Enhanced Version</h4>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
                                     st.image(
                                         feedback_result.edited_image_path, 
-                                        caption=f"Edited: {feedback_result.feedback_applied}",
+                                        caption=f"Applied: {feedback_result.feedback_applied}",
                                         use_container_width=True
                                     )
                                     
@@ -1165,23 +1565,24 @@ class ArtGeneratorApp:
                                     try:
                                         with open(feedback_result.edited_image_path, "rb") as file:
                                             st.download_button(
-                                                label="📥 Download Edited",
+                                                label="📥 Download Enhanced Version",
                                                 data=file.read(),
-                                                file_name=f"edited_art_{int(time.time())}.png",
+                                                file_name=f"enhanced_art_{int(time.time())}.png",
                                                 mime="image/png",
-                                                key=f"download_edited_{result.image_path}"
+                                                key=f"download_edited_{result.image_path}",
+                                                use_container_width=True
                                             )
                                     except Exception as e:
                                         logger.warning(f"Download button for edited image failed: {e}")
                                 else:
-                                    st.error(f"❌ Feedback failed: {feedback_result.error_message}")
+                                    st.error(f"❌ Enhancement failed: {feedback_result.error_message}")
                         else:
-                            st.warning("Please enter feedback to apply changes")
+                            st.warning("💡 Please describe the changes you'd like to see")
                 
                 with col_btn2:
-                    if st.button("🔄 New Variation", key=f"variation_{result.image_path}", use_container_width=True):
+                    if st.button("🎲 Create Variation", key=f"variation_{result.image_path}", use_container_width=True):
                         if feedback_input.strip():
-                            with st.spinner("🎨 Creating variation..."):
+                            with st.spinner("🎨 Creating new variation..."):
                                 original_prompt = st.session_state.original_prompts.get(result.image_path, '')
                                 variation_path = self.generate_image_variation(
                                     result.image_path, 
@@ -1201,22 +1602,32 @@ class ArtGeneratorApp:
                         else:
                             st.warning("Please enter feedback for variation")
                 
-                # Quick feedback buttons
-                st.markdown("**Quick Adjustments:**")
+                # Quick feedback buttons with enhanced styling
+                st.markdown("<br><hr style='border-color: #334155; margin: 1.5rem 0;'><br>", unsafe_allow_html=True)
+                # Quick adjustments with enhanced spacing
+                st.markdown("<div style='margin: 2rem 0 1rem 0;'></div>", unsafe_allow_html=True)
+                st.markdown("""
+                <div style='background: rgba(102, 126, 234, 0.08); padding: 1.5rem; border-radius: 16px; border: 1px solid #334155; margin-bottom: 1.5rem;'>
+                <h4 style='color: #667eea; margin: 0 0 0.8rem 0; text-align: center;'>🚀 Quick Enhancements</h4>
+                <p style='color: #94a3b8; margin: 0; font-size: 0.95rem; text-align: center;'>One-click improvements for instant results</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
                 quick_feedbacks = [
                     ("☀️ Brighter", "make it brighter"),
                     ("🌙 Darker", "make it darker"),
-                    ("� More Color", "add more colors"),
-                    ("🔍 Sharper", "make it sharper")
+                    ("🎨 More Color", "add more vibrant colors"),
+                    ("🔍 Sharper", "make it sharper and more detailed")
                 ]
                 
+                # Enhanced quick buttons layout
                 for i in range(0, len(quick_feedbacks), 2):
-                    col_q1, col_q2 = st.columns(2)
+                    col_q1, col_q2 = st.columns(2, gap="small")
                     
                     with col_q1:
                         if i < len(quick_feedbacks):
                             label, feedback = quick_feedbacks[i]
-                            if st.button(label, key=f"quick_{i}_{result.image_path}"):
+                            if st.button(label, key=f"quick_{i}_{result.image_path}", use_container_width=True):
                                 with st.spinner(f"Applying {feedback}..."):
                                     feedback_result = self.apply_feedback_to_image(result.image_path, feedback)
                                     if feedback_result.success:
@@ -1225,7 +1636,7 @@ class ArtGeneratorApp:
                     with col_q2:
                         if i + 1 < len(quick_feedbacks):
                             label, feedback = quick_feedbacks[i + 1]
-                            if st.button(label, key=f"quick_{i+1}_{result.image_path}"):
+                            if st.button(label, key=f"quick_{i+1}_{result.image_path}", use_container_width=True):
                                 with st.spinner(f"Applying {feedback}..."):
                                     feedback_result = self.apply_feedback_to_image(result.image_path, feedback)
                                     if feedback_result.success:
@@ -1262,6 +1673,384 @@ class ArtGeneratorApp:
         else:
             st.error(f"❌ Generation failed: {result.error_message}")
 
+    def display_results_in_columns(self, result: GenerationResult, col1, col2):
+        """Display generation results using the provided columns"""
+        if result.success and result.image_path:
+            # Store result in session state for persistence
+            st.session_state.last_result = result
+            
+            # Show subscription status with generation result
+            is_premium = self.check_subscription_status()
+            if is_premium:
+                st.success("🎨 Masterpiece created successfully! (Premium - No watermarks)")
+            else:
+                st.success("🎨 Art generated successfully! (Free plan - includes watermarks)")
+                st.info("💎 Upgrade to Premium for watermark-free creations")
+            
+            # Use the existing col1 for image display
+            with col1:
+                # Clear previous content
+                st.empty()
+                
+                # Enhanced image display
+                st.markdown("""
+                <div style='text-align: center; margin: 2rem 0 1rem 0;'>
+                <h3 style='color: #667eea; margin-bottom: 1rem; font-size: 1.8rem; font-weight: 700;'>✨ Your Masterpiece</h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Enhanced image display container
+                st.markdown("""
+                <div style='background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6)); 
+                            padding: 2rem; 
+                            border-radius: 20px; 
+                            border: 1px solid #475569; 
+                            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                            margin-bottom: 2rem;'>
+                """, unsafe_allow_html=True)
+                
+                st.image(result.image_path, caption="Generated with AI", use_container_width=True)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Download section
+                try:
+                    with open(result.image_path, "rb") as file:
+                        st.download_button(
+                            label="📥 Download Your Masterpiece",
+                            data=file.read(),
+                            file_name=f"masterpiece_{int(time.time())}.png",
+                            mime="image/png",
+                            use_container_width=True,
+                            type="primary"
+                        )
+                except Exception as e:
+                    logger.warning(f"Download button setup failed: {e}")
+                    
+                # Style and reference information
+                if result.style_info:
+                    with st.expander("🎭 Style Analysis"):
+                        st.write(f"**Detected Style:** {result.style_info.get('style', 'Unknown')}")
+                        st.write(f"**Subject:** {result.style_info.get('subject', 'Unknown')}")
+                        if 'elements' in result.style_info:
+                            elements = result.style_info['elements']
+                            if elements.get('nouns'):
+                                st.write(f"**Key Elements:** {', '.join(elements['nouns'])}")
+                            if elements.get('adjectives'):
+                                st.write(f"**Descriptors:** {', '.join(elements['adjectives'])}")
+                
+                if result.references:
+                    with st.expander("🖼️ Reference Images Used"):
+                        cols = st.columns(len(result.references))
+                        for i, ref in enumerate(result.references):
+                            with cols[i]:
+                                try:
+                                    if os.path.exists(ref['image_path']):
+                                        st.image(
+                                            ref['image_path'], 
+                                            caption=f"Style: {ref.get('style', 'Unknown')}", 
+                                            width=150,
+                                            use_container_width=False
+                                        )
+                                except Exception as e:
+                                    st.write(f"Reference: {ref.get('style', 'Unknown')}")
+            
+            # Use the existing col2 for feedback section
+            with col2:
+                # Clear previous tips content
+                st.empty()
+                
+                # Feedback section with enhanced styling
+                st.markdown("""
+                <div style='background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); 
+                            padding: 2rem; 
+                            border-radius: 20px; 
+                            border: 1px solid #667eea; 
+                            margin-bottom: 2rem;'>
+                <h3 style='color: #667eea; margin-bottom: 1rem; text-align: center;'>🎯 Perfect Your Art</h3>
+                <p style='color: #94a3b8; text-align: center; margin-bottom: 1.5rem;'>Describe changes to transform your artwork</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                feedback_input = st.text_area(
+                    "💬 What would you like to change?",
+                    placeholder="Examples:\n• 'Make it brighter and more colorful'\n• 'Add dramatic sunset lighting'\n• 'More contrast and sharper details'\n• 'Softer, dreamier atmosphere'",
+                    height=120,
+                    key=f"feedback_{result.image_path}",
+                    help="💡 Be specific about lighting, colors, mood, or style changes"
+                )
+                
+                # Store original prompt in session state for feedback
+                if "original_prompts" not in st.session_state:
+                    st.session_state.original_prompts = {}
+                st.session_state.original_prompts[result.image_path] = st.session_state.get('last_prompt', '')
+                
+                # Action buttons
+                col_btn1, col_btn2 = st.columns(2, gap="medium")
+                
+                with col_btn1:
+                    if st.button("✨ Apply Changes", key=f"apply_{result.image_path}", use_container_width=True, type="primary"):
+                        if feedback_input.strip():
+                            with st.spinner("🎨 Applying your vision..."):
+                                original_prompt = st.session_state.original_prompts.get(result.image_path, '')
+                                feedback_result = self.apply_feedback_to_image(
+                                    result.image_path, 
+                                    feedback_input, 
+                                    original_prompt
+                                )
+                                
+                                if feedback_result.success:
+                                    st.success("✅ Changes applied successfully!")
+                                    
+                                    # Show edited image
+                                    st.markdown("""
+                                    <div style='background: rgba(16, 185, 129, 0.1); padding: 1rem; border-radius: 12px; border: 1px solid #10b981; margin: 1rem 0;'>
+                                    <h4 style='color: #10b981; margin: 0 0 0.5rem 0;'>🎨 Enhanced Version</h4>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    st.image(
+                                        feedback_result.edited_image_path, 
+                                        caption=f"Applied: {feedback_result.feedback_applied}",
+                                        use_container_width=True
+                                    )
+                                    
+                                    # Download button for edited image
+                                    try:
+                                        with open(feedback_result.edited_image_path, "rb") as file:
+                                            st.download_button(
+                                                label="📥 Download Enhanced",
+                                                data=file.read(),
+                                                file_name=f"enhanced_{int(time.time())}.png",
+                                                mime="image/png",
+                                                key=f"download_edited_{result.image_path}",
+                                                use_container_width=True
+                                            )
+                                    except Exception as e:
+                                        logger.warning(f"Download button failed: {e}")
+                                else:
+                                    st.error(f"❌ Enhancement failed: {feedback_result.error_message}")
+                        else:
+                            st.warning("💡 Please describe the changes you'd like to see")
+                
+                with col_btn2:
+                    if st.button("🎲 Create Variation", key=f"variation_{result.image_path}", use_container_width=True):
+                        if feedback_input.strip():
+                            with st.spinner("🎨 Creating variation..."):
+                                original_prompt = st.session_state.original_prompts.get(result.image_path, '')
+                                variation_path = self.generate_image_variation(
+                                    result.image_path, 
+                                    feedback_input, 
+                                    original_prompt
+                                )
+                                
+                                if variation_path:
+                                    st.success("✅ Variation created!")
+                                    st.image(
+                                        variation_path, 
+                                        caption=f"Variation: {feedback_input}",
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.error("❌ Variation generation failed")
+                        else:
+                            st.warning("Please enter feedback for variation")
+                            
+        else:
+            st.error(f"❌ Generation failed: {result.error_message}")
+
+    def display_results_single_column(self, result: GenerationResult):
+        """Display generation results in a single centered column layout"""
+        # Store result in session state to persist across reruns
+        if result.success and result.image_path:
+            st.session_state.current_result = result
+        
+        # Use stored result if available (for handling button interactions)
+        if hasattr(st.session_state, 'current_result') and st.session_state.current_result.success:
+            result = st.session_state.current_result
+            
+        if result.success and result.image_path:
+            # Show subscription status with generation result
+            is_premium = self.check_subscription_status()
+            if is_premium:
+                st.success("🎨 Masterpiece created successfully! (Premium - No watermarks)")
+            else:
+                st.success("🎨 Art generated successfully! (Free plan - includes watermarks)")
+                st.info("💎 Upgrade to Premium for watermark-free creations")
+            
+            # Add generous spacing
+            st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+            
+            # Header section - centered
+            st.markdown("""
+            <div style='text-align: center; margin: 2rem 0 3rem 0;'>
+            <h2 style='color: #667eea; margin-bottom: 1rem; font-size: 2.5rem; font-weight: 700;'>✨ Your Masterpiece</h2>
+            <p style='color: #94a3b8; margin: 0; font-size: 1.1rem;'>Generated with AI • Ready for download and editing</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Image display section - centered with max width
+            st.markdown("""
+            <div style='display: flex; justify-content: center; margin: 3rem 0;'>
+            <div style='max-width: 600px; width: 100%; 
+                       background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6)); 
+                       padding: 2rem; 
+                       border-radius: 24px; 
+                       border: 1px solid #475569; 
+                       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);'>
+            """, unsafe_allow_html=True)
+            
+            st.image(result.image_path, caption="", use_container_width=True)
+            
+            st.markdown("</div></div>", unsafe_allow_html=True)
+            
+            # Download section - centered
+            st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+            col_download_left, col_download_center, col_download_right = st.columns([1, 2, 1])
+            
+            with col_download_center:
+                try:
+                    with open(result.image_path, "rb") as file:
+                        st.download_button(
+                            label="📥 Download Your Masterpiece",
+                            data=file.read(),
+                            file_name=f"masterpiece_{int(time.time())}.png",
+                            mime="image/png",
+                            use_container_width=True
+                        )
+                except Exception as e:
+                    logger.warning(f"Download button setup failed: {e}")
+            
+            # Feedback section - centered
+            st.markdown("<div style='margin: 4rem 0 2rem 0;'></div>", unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div style='text-align: center; margin-bottom: 2rem;'>
+            <h3 style='color: #667eea; font-size: 1.8rem; margin-bottom: 1rem;'>🎯 Perfect Your Art</h3>
+            <p style='color: #94a3b8; font-size: 1.1rem;'>Describe changes to transform your artwork instantly</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Feedback input - centered with max width
+            col_feedback_left, col_feedback_center, col_feedback_right = st.columns([0.5, 3, 0.5])
+            
+            with col_feedback_center:
+                st.markdown("""
+                <div style='background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); 
+                            padding: 2rem; 
+                            border-radius: 20px; 
+                            border: 1px solid #667eea; 
+                            margin-bottom: 2rem;'>
+                """, unsafe_allow_html=True)
+                
+                feedback_input = st.text_area(
+                    "💬 What would you like to change?",
+                    placeholder="Examples:\n• 'Make it brighter and more colorful'\n• 'Add dramatic sunset lighting'\n• 'More contrast and sharper details'\n• 'Softer, dreamier atmosphere'",
+                    height=120,
+                    key=f"feedback_{result.image_path}",
+                    help="💡 Be specific about lighting, colors, mood, or style changes you want"
+                )
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Store original prompt in session state for feedback
+                if "original_prompts" not in st.session_state:
+                    st.session_state.original_prompts = {}
+                st.session_state.original_prompts[result.image_path] = st.session_state.get('last_prompt', '')
+                
+                # Action buttons - centered
+                col_btn1, col_btn2 = st.columns(2, gap="medium")
+                
+                with col_btn1:
+                    if st.button("🔧 Apply Changes", key=f"apply_{result.image_path}", use_container_width=True):
+                        if feedback_input.strip():
+                            with st.spinner("🎨 Applying your changes..."):
+                                original_prompt = st.session_state.original_prompts.get(result.image_path, '')
+                                feedback_result = self.apply_feedback_to_image(
+                                    result.image_path, 
+                                    feedback_input, 
+                                    original_prompt
+                                )
+                                
+                                if feedback_result.success and feedback_result.edited_image_path:
+                                    st.success("✅ Changes applied successfully!")
+                                    
+                                    # Display the edited image centered
+                                    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+                                    st.markdown("""
+                                    <div style='display: flex; justify-content: center;'>
+                                    <div style='max-width: 600px; width: 100%; 
+                                               background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6)); 
+                                               padding: 2rem; 
+                                               border-radius: 24px; 
+                                               border: 1px solid #10b981;'>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    st.image(
+                                        feedback_result.edited_image_path,
+                                        caption=f"Enhanced: {feedback_input}",
+                                        use_container_width=True
+                                    )
+                                    
+                                    st.markdown("</div></div>", unsafe_allow_html=True)
+                                    
+                                    # Download button for edited image
+                                    try:
+                                        with open(feedback_result.edited_image_path, "rb") as file:
+                                            st.download_button(
+                                                label="📥 Download Enhanced Image",
+                                                data=file.read(),
+                                                file_name=f"enhanced_{int(time.time())}.png",
+                                                mime="image/png",
+                                                use_container_width=True
+                                            )
+                                    except Exception as e:
+                                        logger.warning(f"Download button failed: {e}")
+                                else:
+                                    st.error(f"❌ Enhancement failed: {feedback_result.error_message}")
+                        else:
+                            st.warning("💡 Please describe the changes you'd like to see")
+                
+                with col_btn2:
+                    if st.button("🎲 Create Variation", key=f"variation_{result.image_path}", use_container_width=True):
+                        if feedback_input.strip():
+                            with st.spinner("🎨 Creating variation..."):
+                                original_prompt = st.session_state.original_prompts.get(result.image_path, '')
+                                variation_path = self.generate_image_variation(
+                                    result.image_path, 
+                                    feedback_input, 
+                                    original_prompt
+                                )
+                                
+                                if variation_path:
+                                    st.success("✅ Variation created!")
+                                    
+                                    # Display variation centered
+                                    st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+                                    st.markdown("""
+                                    <div style='display: flex; justify-content: center;'>
+                                    <div style='max-width: 600px; width: 100%; 
+                                               background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6)); 
+                                               padding: 2rem; 
+                                               border-radius: 24px; 
+                                               border: 1px solid #f59e0b;'>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    st.image(
+                                        variation_path, 
+                                        caption=f"Variation: {feedback_input}",
+                                        use_container_width=True
+                                    )
+                                    
+                                    st.markdown("</div></div>", unsafe_allow_html=True)
+                                else:
+                                    st.error("❌ Variation generation failed")
+                        else:
+                            st.warning("Please enter feedback for variation")
+                            
+        else:
+            st.error(f"❌ Generation failed: {result.error_message}")
+
     def run(self):
         """Main Streamlit application"""
         st.set_page_config(
@@ -1270,56 +2059,204 @@ class ArtGeneratorApp:
             page_icon="🎨"
         )
         
-        # Global CSS & polished layout
+        # Global CSS & Dark Mode Layout
         st.markdown("""
         <style>
-        /* Layout & typography */
-        html, body, [class*="css"]  {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        /* Root & Background - Dark Theme */
+        .stApp {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%) !important;
+            color: #e2e8f0 !important;
         }
+        
+        /* Main content container - centered */
+        .main .block-container {
+            max-width: 900px !important;
+            margin: 0 auto !important;
+            padding: 2rem 1rem !important;
+        }
+        
+        /* Layout & typography */
+        html, body, [class*="css"], .stMarkdown, .stText {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial !important;
+            color: #e2e8f0 !important;
+        }
+        
         .main-header {
             text-align: center;
-            background: linear-gradient(90deg,#5b6cb8,#7b61ff);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-size: 2.4rem;
-            font-weight: 700;
-            margin-bottom: 0.2rem;
+            background-clip: text;
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 2rem 0 0.5rem 0;
+            letter-spacing: -0.02em;
         }
+        
         .subtitle {
             text-align: center;
-            color: #6b7280;
-            font-size: 1rem;
-            margin-bottom: 1.25rem;
+            color: #94a3b8;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            font-weight: 400;
         }
 
-        /* Dark sidebar */
-        .css-1d391kg { background: #0f1724 !important; }
-        .css-1d391kg .css-1lcbmhc { color: #e6eef8 !important; }
+        /* Dark sidebar styling */
+        .css-1d391kg, [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #1e1e3f 0%, #2d2d5a 100%) !important;
+            border-right: 1px solid #374151 !important;
+        }
+        
+        .css-1d391kg .stMarkdown, .css-1d391kg .stText,
+        [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] .stText {
+            color: #e2e8f0 !important;
+        }
 
-        /* Card styling */
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
+        /* Input fields - Dark theme */
+        .stTextInput > div > div > input,
+        .stTextArea > div > div > textarea,
+        .stSelectbox > div > div > select {
+            background-color: #1e293b !important;
+            color: #e2e8f0 !important;
+            border: 1px solid #475569 !important;
+            border-radius: 8px !important;
+        }
+        
+        .stTextInput > div > div > input:focus,
+        .stTextArea > div > div > textarea:focus,
+        .stSelectbox > div > div > select:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1) !important;
+        }
+
+        /* Card styling - Dark theme */
+        .card, .stContainer {
+            background: rgba(30, 41, 59, 0.8) !important;
+            border: 1px solid #334155 !important;
+            border-radius: 16px !important;
+            padding: 1.5rem !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+            backdrop-filter: blur(10px) !important;
+        }
+
+        /* Enhanced Buttons */
+        .stButton > button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            color: white !important;
+            border-radius: 12px !important;
+            border: none !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+        }
+        
+        .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4) !important;
+        }
+        
+        .stButton > button[data-testid="baseButton-primary"] {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3) !important;
+        }
+
+        /* Progress bars */
+        .stProgress > div > div > div {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+        }
+
+        /* Columns spacing - Enhanced */
+        .stColumn {
+            padding: 0 1rem !important;
+        }
+        
+        /* Enhanced spacing for results */
+        .stColumn > div {
+            padding: 0.75rem 0 !important;
+        }
+        
+        /* Text areas with better spacing */
+        .stTextArea > div > div > textarea {
+            padding: 1rem !important;
+            line-height: 1.6 !important;
+        }
+        
+        /* Enhanced image containers */
+        [data-testid="stImage"] {
+            border-radius: 12px !important;
+            overflow: hidden !important;
+        }
+        }
+        
+        /* Image containers */
+        .stImage {
+            border-radius: 12px !important;
+            overflow: hidden !important;
+        }
+
+        /* Success/Warning/Error messages */
+        .stSuccess, .stInfo, .stWarning, .stError {
+            background: rgba(30, 41, 59, 0.9) !important;
+            border-radius: 8px !important;
+            border-left: 4px solid !important;
+        }
+        
+        .stSuccess { border-left-color: #10b981 !important; }
+        .stInfo { border-left-color: #3b82f6 !important; }
+        .stWarning { border-left-color: #f59e0b !important; }
+        .stError { border-left-color: #ef4444 !important; }
+
+        /* Dividers */
+        hr {
+            border-color: #334155 !important;
+            margin: 1.5rem 0 !important;
+        }
+
+        /* Image display */
+        .preview-center { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
             padding: 1rem;
-            box-shadow: 0 6px 20px rgba(16,24,40,0.08);
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            margin: 1rem 0;
         }
 
-        /* Buttons */
-        .stButton>button {
-            background: linear-gradient(90deg,#5b6cb8,#7b61ff);
-            color: white;
-            border-radius: 10px;
-            border: none;
-            padding: 10px 14px;
-            font-weight: 600;
-        }
-
-        /* Center preview area */
-        .preview-center { display: flex; justify-content: center; align-items: center; }
-
+        /* Responsive design */
         @media (max-width: 768px) {
-            .main-header { font-size: 1.6rem; }
+            .main-header { font-size: 2rem; }
+            .subtitle { font-size: 1rem; }
+            .main .block-container {
+                padding: 1rem 0.5rem !important;
+                max-width: 100% !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-header { font-size: 1.5rem; }
+            .stColumn {
+                padding: 0 0.25rem !important;
+            }
+            .main .block-container {
+                max-width: 100% !important;
+                padding: 1rem 0.25rem !important;
+            }
+        }
+
+        /* Additional single-column enhancements */
+        .stTextArea textarea {
+            min-height: 120px !important;
+        }
+        
+        /* Center alignment utilities */
+        .center-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -1327,12 +2264,12 @@ class ArtGeneratorApp:
         st.markdown('<div class="main-header">🎨 Art Generator</div>', unsafe_allow_html=True)
         st.markdown('<div class="subtitle">Turn prompts into beautiful, style-aware artwork — fast.</div>', unsafe_allow_html=True)
         
-        # Sidebar (compact, dark-themed)
+        # Sidebar (dark-themed)
         with st.sidebar:
             st.markdown("""
-            <div style='text-align: center; padding: 0.6rem 0;'>
-            <h3 style='color: #93c5fd; margin: 0;'>🎨 Art Generator</h3>
-            <p style='color: #cbd5e1; font-size: 0.85rem; margin: 0;'>AI Creative Suite</p>
+            <div style='text-align: center; padding: 1rem 0; background: rgba(30, 41, 59, 0.5); border-radius: 12px; margin-bottom: 1rem;'>
+            <h2 style='color: #667eea; margin: 0; font-weight: 700;'>🎨 Art Generator</h2>
+            <p style='color: #94a3b8; font-size: 0.9rem; margin: 0.5rem 0 0 0; font-weight: 400;'>AI Creative Suite</p>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1366,39 +2303,49 @@ class ArtGeneratorApp:
 
             # Recent images list removed per user request
         
-        col1, col2 = st.columns([2, 1])
+        # Main content area - Single centered column layout
+        st.markdown("""
+        <div style='max-width: 800px; margin: 0 auto; padding: 2rem 1rem;'>
+        """, unsafe_allow_html=True)
         
-        with col1:
-            # Main generation area (header card removed as requested)
-            pass
-            
-            prompt = st.text_area(
-                "🎨 Art Prompt",
-                placeholder="Describe your vision... e.g., 'A serene mountain landscape at sunset with golden light filtering through pine trees'",
-                help="Be descriptive! Include mood, colors, style, and subject matter",
-                height=120
+        # Prompt Input Section - Centered
+        st.markdown("""
+        <div style='text-align: center; margin-bottom: 3rem;'>
+        <h2 style='color: #667eea; font-size: 2rem; margin-bottom: 1rem;'>✨ Create Your Art</h2>
+        <p style='color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem;'>Describe your vision and watch it come to life</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        prompt = st.text_area(
+            "🎨 Describe Your Vision",
+            placeholder="Paint me a serene mountain landscape at sunset with golden light filtering through pine trees, in the style of Bob Ross...",
+            help="💡 Be descriptive! Include mood, colors, style, and subject matter for best results",
+            height=120
+        )
+        
+        st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+        
+        # Style and refinement options - Side by side but centered
+        col_style, col_feedback = st.columns(2, gap="medium")
+        with col_style:
+            available_styles = sorted(set(self.df['style'].astype(str).str.strip().tolist())) if not self.df.empty else []
+            style = st.selectbox(
+                "🎭 Art Style",
+                ["Auto-detect"] + available_styles,
+                help="Choose a style from your reference images or let AI detect the best style."
             )
-            
-            st.markdown("---")
-            
-            col_style, col_feedback = st.columns(2)
-            with col_style:
-                available_styles = sorted(set(self.df['style'].astype(str).str.strip().tolist())) if not self.df.empty else []
-                style = st.selectbox(
-                    "🎭 Art Style",
-                    ["Auto-detect"] + available_styles,
-                    help="Choose a style from your reference images or let AI detect the best style."
-                )
-            with col_feedback:
-                feedback = st.text_input(
-                    "🔧 Refinement (Optional)",
-                    placeholder="e.g., 'make it brighter', 'add more blues'"
-                )
-            
-            st.markdown("---")
-            
-            # Generate button with custom styling
-            if st.button("🚀 Generate Art", type="primary", use_container_width=True):
+        with col_feedback:
+            feedback = st.text_input(
+                "🔧 Refinements",
+                placeholder="e.g., 'more vibrant colors', 'softer lighting'"
+            )
+        
+        st.markdown("<div style='margin: 2rem 0;'></div>", unsafe_allow_html=True)
+        
+        # Centered Generate button
+        col_btn_left, col_btn_center, col_btn_right = st.columns([1, 2, 1])
+        with col_btn_center:
+            if st.button("🚀 Generate Masterpiece", type="primary", use_container_width=True):
                 if "generation_count" not in st.session_state:
                     st.session_state.generation_count = 0
                 if not self.validate_inputs(prompt):
@@ -1406,6 +2353,10 @@ class ArtGeneratorApp:
                     
                 if not self.manage_rate_limit():
                     return
+                
+                # Clear previous result when starting new generation
+                if hasattr(st.session_state, 'current_result'):
+                    del st.session_state.current_result
                     
                 # Store the prompt for feedback functionality
                 st.session_state.last_prompt = prompt
@@ -1423,9 +2374,37 @@ class ArtGeneratorApp:
                     progress_bar.progress(100, "Complete!")
                     time.sleep(0.5)
                     
-                self.display_results(result)
+                # Display results in single column layout
+                self.display_results_single_column(result)
                 
                 progress_bar.empty()
+
+        # Display stored results if they exist (for button interactions)
+        if hasattr(st.session_state, 'current_result') and st.session_state.current_result.success:
+            # Only display if we're not in the middle of a new generation
+            if "generation_count" not in st.session_state or st.session_state.generation_count > 0:
+                self.display_results_single_column(st.session_state.current_result)
+
+        # Quick tips section - centered
+        st.markdown("<div style='margin: 3rem 0;'></div>", unsafe_allow_html=True)
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.1)); 
+                    padding: 2rem; 
+                    border-radius: 20px; 
+                    border: 1px solid #667eea; 
+                    text-align: center;'>
+        <h3 style='color: #667eea; margin-bottom: 1rem;'>💡 Pro Tips for Better Results</h3>
+        <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;'>
+            <div style='color: #94a3b8;'>✨ Be specific about colors and mood</div>
+            <div style='color: #94a3b8;'>🎨 Mention artistic styles you prefer</div>
+            <div style='color: #94a3b8;'>💡 Include lighting and atmosphere details</div>
+            <div style='color: #94a3b8;'>📝 Use descriptive adjectives</div>
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Close the main content container
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # Feedback Agent Section for Previous Images
         if hasattr(st.session_state, 'selected_image_for_feedback'):
